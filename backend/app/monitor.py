@@ -12,7 +12,7 @@ from app.config import settings
 def _get_settings(db):
     row = db.get(MonitorSettings, 1)
     if row is None:
-        row = MonitorSettings(id=1, enabled=False, interval_minutes=settings.monitor_interval_minutes)
+        row = MonitorSettings(id=1, enabled=False)
         db.add(row)
         db.commit()
         db.refresh(row)
