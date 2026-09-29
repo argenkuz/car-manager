@@ -46,7 +46,11 @@ class CarManagerClient:
 
     async def post_json(self, path: str, **kwargs: Any) -> Any:
         await self.ensure_login()
-        response = await self.client.post(path, **kwargs)
+        response = await self.client.post(
+            path,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            **kwargs,
+        )
         response.raise_for_status()
         return response.json()
 
