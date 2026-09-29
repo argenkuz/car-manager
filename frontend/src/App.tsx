@@ -5,23 +5,31 @@ const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 type Brand = { id: string; name: string };
 type Model = { id: string; name: string };
+type Option = { id: string; name: string };
 type Car = { id:string; title:string; brand?:string; model?:string; year?:number; mileage?:number; price?:number; location?:string; url?:string; image_url?:string };
 type Filter = {
   id:number; name:string; enabled:boolean; brand_id:string|null; model_id:string|null;
+  model_detail_id:string|null; grade_id:string|null; grade_detail_id:string|null;
   min_year:number|null; max_year:number|null; min_mileage:number|null; max_mileage:number|null;
   min_price:number|null; max_price:number|null;
+  fuel_ids:string[]; mission_ids:string[]; color_ids:string[]; option_ids:string[];
+  accident:string|null; sido_ids:string[]; sido_area_ids:string[]; danji_ids:string[];
 };
 type FilterDraft = {
   name:string; enabled:boolean; brand_id:string|null; model_id:string|null;
+  model_detail_id:string|null; grade_id:string|null; grade_detail_id:string|null;
   min_year:number|null; max_year:number|null; min_mileage:number|null; max_mileage:number|null;
   min_price:number|null; max_price:number|null;
+  fuel_ids:string[]; mission_ids:string[]; color_ids:string[]; option_ids:string[];
+  accident:string|null; sido_ids:string[]; sido_area_ids:string[]; danji_ids:string[];
 };
 type User = { id:number; username:string; role:string; is_active:boolean };
 type Monitor = { enabled:boolean; interval_minutes:number; next_run_at:string|null };
 
 const emptyFilter: FilterDraft = {
-  name:"Новый фильтр", enabled:true, brand_id:null, model_id:null,
-  min_year:null,max_year:null,min_mileage:null,max_mileage:null,min_price:null,max_price:null
+  name:"Новый фильтр", enabled:true, brand_id:null, model_id:null, model_detail_id:null, grade_id:null, grade_detail_id:null,
+  min_year:null,max_year:null,min_mileage:null,max_mileage:null,min_price:null,max_price:null,
+  fuel_ids:[],mission_ids:[],color_ids:[],option_ids:[],accident:null,sido_ids:[],sido_area_ids:[],danji_ids:[]
 };
 
 function token() { return localStorage.getItem("car_manager_access_token"); }
@@ -151,6 +159,16 @@ function TelegramSettings({onClose}:{onClose:()=>void}) {
 function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
   const [brands,setBrands]=useState<Brand[]>([]);
   const [models,setModels]=useState<Model[]>([]);
+  const [details,setDetails]=useState<Option[]>([]);
+  const [grades,setGrades]=useState<Option[]>([]);
+  const [gradeDetails,setGradeDetails]=useState<Option[]>([]);
+  const [fuel,setFuel]=useState<Option[]>([]);
+  const [mission,setMission]=useState<Option[]>([]);
+  const [colors,setColors]=useState<Option[]>([]);
+  const [options,setOptions]=useState<Option[]>([]);
+  const [sido,setSido]=useState<Option[]>([]);
+  const [areas,setAreas]=useState<Option[]>([]);
+  const [danji,setDanji]=useState<Option[]>([]);
   const [filters,setFilters]=useState<Filter[]>([]);
   const [filter,setFilter]=useState<FilterDraft>({...emptyFilter});
   const [editing,setEditing]=useState<number|null>(null);
@@ -165,8 +183,14 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
   async function load(){
     try{
       setLoading(true);setError("");
-      const [b,f,m]=await Promise.all([api("/api/catalog/brands"),api("/api/filters"),api("/api/monitor/status")]);
+      const [b,f,m,catalog]=await Promise.all([api("/api/catalog/brands"),api("/api/filters"),api("/api/monitor/status"),api("/api/catalog/car-filters")]);
       setBrands(b.items||[]);setFilters(f||[]);setMonitor(m);
+      const normalize=(arr:any[],idKeys:string[],nameKeys:string[]):Option[] => (arr||[]).map(x=>({id:String(idKeys.map(k=>x[k]).find(v=>v!=null)??""),name:String(nameKeys.map(k=>x[k]).find(v=>v!=null)??"")})).filter(x=>x.id&&x.name);
+      setFuel(normalize(catalog.fuel,["FKeyNo"],["FuelName"]));
+      setMission(normalize(catalog.mission,["MKeyNo"],["MissionName"]));
+      setColors(normalize(catalog.color,["CKeyNo"],["ColorName"]));
+      setOptions(normalize([...(catalog.option_base||[]),...(catalog.option_etc||[])],["CarOptionNo"],["CarOptionName"]));
+      setSido(normalize(catalog.sido,["SiDoNo"],["SiDoCodeFullName","SiDoCodeName"]));
     }catch(e){setError(e instanceof Error?e.message:"Backend недоступен")}
     finally{setLoading(false)}
   }
@@ -175,8 +199,35 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
     if(!filter.brand_id){setModels([]);return}
     api("/api/catalog/brands/"+encodeURIComponent(filter.brand_id)+"/models").then(d=>setModels(d.items||[])).catch(()=>setModels([]));
   },[filter.brand_id]);
+  useEffect(()=>{
+    if(!filter.model_id){setDetails([]);return}
+    api("/api/catalog/models/"+encodeURIComponent(filter.model_id)+"/details").then(d=>setDetails(d.items||[])).catch(()=>setDetails([]));
+  },[filter.model_id]);
+  useEffect(()=>{
+    if(!filter.model_detail_id){setGrades([]);return}
+    api("/api/catalog/model-details/"+encodeURIComponent(filter.model_detail_id)+"/grades").then(d=>setGrades(d.items||[])).catch(()=>setGrades([]));
+  },[filter.model_detail_id]);
+  useEffect(()=>{
+    if(!filter.grade_id){setGradeDetails([]);return}
+    api("/api/catalog/grades/"+encodeURIComponent(filter.grade_id)+"/details").then(d=>setGradeDetails(d.items||[])).catch(()=>setGradeDetails([]));
+  },[filter.grade_id]);
+  useEffect(()=>{
+    if(!filter.sido_ids.length){setAreas([]);setDanji([]);return}
+    api("/api/catalog/sido/"+filter.sido_ids[0]+"/areas").then(d=>setAreas(d.items||[])).catch(()=>setAreas([]));
+  },[filter.sido_ids]);
+  useEffect(()=>{
+    if(!filter.sido_area_ids.length){setDanji([]);return}
+    api("/api/catalog/sido-areas/"+filter.sido_area_ids[0]+"/danji").then(d=>setDanji(d.items||[])).catch(()=>setDanji([]));
+  },[filter.sido_area_ids]);
 
   const active=useMemo(()=>filters.filter(f=>f.enabled).length,[filters]);
+  const patchFilter=(p:Partial<FilterDraft>)=>setFilter(v=>({...v,...p}));
+  const clearFrom=(level:"brand"|"model"|"detail"|"grade")=>{
+    if(level==="brand")patchFilter({model_id:null,model_detail_id:null,grade_id:null,grade_detail_id:null});
+    if(level==="model")patchFilter({model_detail_id:null,grade_id:null,grade_detail_id:null});
+    if(level==="detail")patchFilter({grade_id:null,grade_detail_id:null});
+    if(level==="grade")patchFilter({grade_detail_id:null});
+  };
 
   async function saveFilter(){
     try{
@@ -246,6 +297,11 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
     </main>
     {telegramOpen&&<TelegramSettings onClose={()=>setTelegramOpen(false)}/>}
   </div>;
+}
+
+function MultiSelect({title,items,selected,set}:{title:string;items:Option[];selected:string[];set:(v:string[])=>void}){
+  const toggle=(id:string)=>set(selected.includes(id)?selected.filter(x=>x!==id):[...selected,id]);
+  return <div className="multi"><label>{title}{selected.length?" ("+selected.length+")":""}</label><div className="multi-list">{items.length===0?<span className="muted">Нет данных</span>:items.map(x=><label className="check" key={x.id}><input type="checkbox" checked={selected.includes(x.id)} onChange={()=>toggle(x.id)}/><span>{x.name}</span></label>)}</div></div>;
 }
 
 function NumberField({title,value,set}:{title:string,value:number|null,set:(v:number|null)=>void}){
