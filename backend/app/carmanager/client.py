@@ -3,6 +3,7 @@ from typing import Any
 import httpx
 from app.config import settings
 
+
 class CarManagerClient:
     def __init__(self) -> None:
         self.client = httpx.AsyncClient(
@@ -32,7 +33,7 @@ class CarManagerClient:
             },
             follow_redirects=False,
         )
-        self.authenticated = response.status_code in {301,302,303,307,308}
+        self.authenticated = response.status_code in {301, 302, 303, 307, 308}
         return self.authenticated
 
     async def ensure_login(self):
@@ -42,6 +43,12 @@ class CarManagerClient:
     async def get(self, path: str, **kwargs: Any) -> httpx.Response:
         await self.ensure_login()
         return await self.client.get(path, **kwargs)
+
+    async def post_json(self, path: str, **kwargs: Any) -> Any:
+        await self.ensure_login()
+        response = await self.client.post(path, **kwargs)
+        response.raise_for_status()
+        return response.json()
 
     async def search(self, payload: dict) -> httpx.Response:
         await self.ensure_login()
