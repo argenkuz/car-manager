@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CATALOG_PATH = ROOT / "data" / "carmanager_catalog.json"
 
 SOURCE_FILES = {
-    "brands": (ROOT / "carmanager_CarBaseMaker.js", "CarBaseMaker"),
+    "brands": (ROOT / "carmanager_js" / "carmanager_CarBaseMaker.js", "CarBaseMaker"),
     "models": (ROOT / "carmanager_CarBaseModel.js", "CarBaseModel"),
     "model_details": (ROOT / "carmanager_CarBaseModelDetail.js", "CarBaseModelDetail"),
     "grades": (ROOT / "carmanager_CarBaseGrade.js", "CarBaseGrade"),
