@@ -75,24 +75,24 @@ async def run_once() -> dict:
                 response.raise_for_status()
                 cars = parse_cars(response.text, base_url=settings.carmanager_base_url, enc_check=client.enc_check)
                 for car in cars:
-                if not _matches(car, f):
-                    continue
-                exists = db.scalar(select(SeenCar).where(SeenCar.filter_id == f.id, SeenCar.car_id == car.id))
-                if exists:
-                    continue
-                seen = SeenCar(filter_id=f.id, car_id=car.id)
-                db.add(seen)
-                total_new += 1
-                if settings.telegram_bot_token:
-                    message = (
-                        f"🚗 {car.title}\n"
-                        f"Год: {car.year or '-'} | Пробег: {car.mileage or '-'} км\n"
-                        f"Цена: {car.price or '-'}\n"
-                        f"Регион: {car.location or '-'}\n"
-                        f"{car.url or ''}"
-                    )
-                    await send_message(message)
-                    seen.notified = True
+                    if not _matches(car, f):
+                        continue
+                    exists = db.scalar(select(SeenCar).where(SeenCar.filter_id == f.id, SeenCar.car_id == car.id))
+                    if exists:
+                        continue
+                    seen = SeenCar(filter_id=f.id, car_id=car.id)
+                    db.add(seen)
+                    total_new += 1
+                    if settings.telegram_bot_token:
+                        message = (
+                            f"🚗 {car.title}\n"
+                            f"Год: {car.year or '-'} | Пробег: {car.mileage or '-'} км\n"
+                            f"Цена: {car.price or '-'}\n"
+                            f"Регион: {car.location or '-'}\n"
+                            f"{car.url or ''}"
+                        )
+                        await send_message(message)
+                        seen.notified = True
                 if len(cars) < page_size:
                     break
                 page += 1
