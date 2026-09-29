@@ -21,14 +21,12 @@ async def main():
         follow_redirects=False,
     ) as client:
         print("\n1. LOGIN")
-
         login_data = {
             "sbxgubun": "1",
             "returnurl": "/Car/Data",
             "userid": settings.carmanager_user_id,
             "userpwd": settings.carmanager_password,
         }
-
         response = await client.post("/User/Login", data=login_data)
         print("POST /User/Login:", response.status_code)
         print("Location:", response.headers.get("location"))
@@ -48,7 +46,7 @@ async def main():
             return
 
         html = response.text
-        Path("backend/carmanager_search_page.html").write_text(html, encoding="utf-8")
+        Path("carmanager_search_page.html").write_text(html, encoding="utf-8")
 
         print("\n3. HIDDEN VALUES")
 
@@ -65,12 +63,10 @@ async def main():
 
         enc_check = get_input_value("EncCheck")
         pre_page = get_input_value("PrePage")
-
         print("EncCheck:", enc_check)
         print("PrePage:", pre_page)
 
         print("\n4. SEARCH PARAMETERS")
-
         payload = {
             "para": {
                 "EncCheck": enc_check,
@@ -117,7 +113,6 @@ async def main():
         print(json.dumps(payload, ensure_ascii=False, indent=2))
 
         print("\n5. POST /Car/DataPart")
-
         response = await client.post(
             "/Car/DataPart",
             json=payload,
@@ -126,12 +121,11 @@ async def main():
                 "Referer": f"{BASE_URL}/Car/Data",
             },
         )
-
         print("Status:", response.status_code)
         print("Content-Type:", response.headers.get("content-type"))
         print("Length:", len(response.text))
 
-        result_path = Path("backend/carmanager_search_result.html")
+        result_path = Path("carmanager_search_result.html")
         result_path.write_text(response.text, encoding="utf-8")
         print("Saved:", result_path)
 
@@ -141,7 +135,6 @@ async def main():
         print("-" * 70)
 
         print("\n7. POSSIBLE CAR IDENTIFIERS")
-
         patterns = [
             r'data-car-id=["\']([^"\']+)["\']',
             r'data-id=["\']([^"\']+)["\']',
@@ -149,7 +142,6 @@ async def main():
             r'carno["\']?\s*[:=]\s*["\']?([A-Za-z0-9_-]+)',
             r'EncNo["\']?\s*[:=]\s*["\']?([A-Za-z0-9_-]+)',
         ]
-
         found = set()
         for pattern in patterns:
             found.update(re.findall(pattern, response.text, re.IGNORECASE))
