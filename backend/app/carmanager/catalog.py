@@ -19,23 +19,53 @@ SOURCE_FILES = {
 }
 
 
+def _empty(kind: str) -> Any:
+    return [] if kind == "brands" else {}
+
+
 @lru_cache(maxsize=None)
 def _load_js_object(kind: str) -> Any:
     path, variable = SOURCE_FILES[kind]
+
     if not path.exists():
-        return {} if kind != "brands" else []
-    source = path.read_text(encoding="utf-8-sig")
+        return _empty(kind)
+
+    try:
+        source = path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return _empty(kind)
+
+    # CarManager assets are JavaScript assignments such as:
+    # var CarBaseMaker = [...];
+    # var CarBaseModel = {...};
+    # Do not depend on a trailing newline or exact end-of-file formatting.
     match = re.search(
-        rf"var\s+{re.escape(variable)}\s*=\s*(.*?);\s*$",
+        rf"\bvar\s+{re.escape(variable)}\s*=\s*",
         source,
         flags=re.DOTALL,
     )
     if not match:
-        return {} if kind != "brands" else []
+        return _empty(kind)
+
+    raw = source[match.end():].strip()
+    if raw.endswith(";"):
+        raw = raw[:-1].rstrip()
+
     try:
-        return json.loads(match.group(1))
+        return json.loads(raw)
     except json.JSONDecodeError:
-        return {} if kind != "brands" else []
+        # Fallback: take everything through the last JSON closing bracket.
+        end = max(raw.rfind("]"), raw.rfind("}"))
+        if end < 0:
+            return _empty(kind)
+        try:
+            return json.loads(raw[: end + 1])
+        except json.JSONDecodeError:
+            return _empty(kind)
+
+
+def clear_catalog_cache() -> None:
+    _load_js_object.cache_clear()
 
 
 def _legacy_catalog() -> dict:
@@ -60,9 +90,11 @@ def get_brands() -> list[dict]:
                 "country": x.get("CountryName"),
             }
             for x in brands
-            if x.get("MakerNo")
+            if x.get("MakerNo") is not None and x.get("MakerName")
         ]
-    return _legacy_catalog().get("brands", [])
+
+    legacy = _legacy_catalog().get("brands", [])
+    return legacy if isinstance(legacy, list) else []
 
 
 def _items_for_key(kind: str, key: str) -> list[dict]:
@@ -78,12 +110,12 @@ def get_models(brand_id: str) -> list[dict]:
         {
             "id": str(x.get("ModelNo")),
             "name": x.get("ModelName", ""),
-            "maker_id": str(x.get("MakerNo")) if x.get("MakerNo") else str(brand_id),
+            "maker_id": str(x.get("MakerNo")) if x.get("MakerNo") is not None else str(brand_id),
             "code": x.get("ModelCode"),
             "kind_code": x.get("KindCode"),
         }
         for x in _items_for_key("models", brand_id)
-        if x.get("ModelNo")
+        if x.get("ModelNo") is not None and x.get("ModelName")
     ]
 
 
@@ -92,13 +124,13 @@ def get_model_details(model_id: str) -> list[dict]:
         {
             "id": str(x.get("MDetailNo")),
             "name": x.get("MDetailName", ""),
-            "model_id": str(x.get("ModelNo")) if x.get("ModelNo") else str(model_id),
+            "model_id": str(x.get("ModelNo")) if x.get("ModelNo") is not None else str(model_id),
             "code": x.get("MDetailCode"),
             "kind_sub_code": x.get("KindSubCode"),
             "car_count": int(x["CarCount"]) if str(x.get("CarCount", "")).isdigit() else None,
         }
         for x in _items_for_key("model_details", model_id)
-        if x.get("MDetailNo")
+        if x.get("MDetailNo") is not None and x.get("MDetailName")
     ]
 
 
@@ -107,10 +139,10 @@ def get_grades(model_detail_id: str) -> list[dict]:
         {
             "id": str(x.get("GradeNo")),
             "name": x.get("GradeName", ""),
-            "model_detail_id": str(x.get("MDetailNo")) if x.get("MDetailNo") else str(model_detail_id),
+            "model_detail_id": str(x.get("MDetailNo")) if x.get("MDetailNo") is not None else str(model_detail_id),
         }
         for x in _items_for_key("grades", model_detail_id)
-        if x.get("GradeNo")
+        if x.get("GradeNo") is not None and x.get("GradeName")
     ]
 
 
@@ -119,10 +151,10 @@ def get_grade_details(grade_id: str) -> list[dict]:
         {
             "id": str(x.get("GDetailNo")),
             "name": x.get("GDetailName", ""),
-            "grade_id": str(x.get("GradeNo")) if x.get("GradeNo") else str(grade_id),
+            "grade_id": str(x.get("GradeNo")) if x.get("GradeNo") is not None else str(grade_id),
         }
         for x in _items_for_key("grade_details", grade_id)
-        if x.get("GDetailNo")
+        if x.get("GDetailNo") is not None and x.get("GDetailName")
     ]
 
 
@@ -140,3 +172,17 @@ def search_models(query: str = "") -> list[dict]:
                     }
                 )
     return result
+
+
+def get_catalog_stats() -> dict:
+    brands = get_brands()
+    model_count = sum(len(get_models(b["id"])) for b in brands)
+    return {
+        "brands": len(brands),
+        "models": model_count,
+        "model_details": sum(
+            len(get_model_details(m["id"]))
+            for b in brands
+            for m in get_models(b["id"])
+        ),
+    }
