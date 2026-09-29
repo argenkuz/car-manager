@@ -1,15 +1,19 @@
 from contextlib import asynccontextmanager
 import asyncio
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.auth import get_current_user
 from app.config import settings
 from app.database import init_db
+from app.api.auth import router as auth_router
 from app.api.catalog import router as catalog_router
 from app.api.filters import router as filters_router
 from app.api.monitor import router as monitor_router
 from app.api.search import router as search_router
+from app.api.telegram import router as telegram_router
 from app.monitor import monitor_loop
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +26,7 @@ async def lifespan(app: FastAPI):
     stop_event.set()
     await task
 
+
 app = FastAPI(title="CarManager Monitor", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
@@ -32,10 +37,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(catalog_router, prefix="/api/catalog", tags=["catalog"])
-app.include_router(filters_router, prefix="/api/filters", tags=["filters"])
-app.include_router(search_router, prefix="/api/search", tags=["search"])
-app.include_router(monitor_router, prefix="/api/monitor", tags=["monitor"])
+app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+protected = [Depends(get_current_user)]
+app.include_router(catalog_router, prefix="/api/catalog", tags=["catalog"], dependencies=protected)
+app.include_router(filters_router, prefix="/api/filters", tags=["filters"], dependencies=protected)
+app.include_router(search_router, prefix="/api/search", tags=["search"], dependencies=protected)
+app.include_router(monitor_router, prefix="/api/monitor", tags=["monitor"], dependencies=protected)
+app.include_router(telegram_router, prefix="/api/telegram", tags=["telegram"])
+
 
 @app.get("/health")
 async def health():
