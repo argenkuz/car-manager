@@ -11,10 +11,15 @@ type Filter = {
   min_year:number|null; max_year:number|null; min_mileage:number|null; max_mileage:number|null;
   min_price:number|null; max_price:number|null;
 };
+type FilterDraft = {
+  name:string; enabled:boolean; brand_id:string|null; model_id:string|null;
+  min_year:number|null; max_year:number|null; min_mileage:number|null; max_mileage:number|null;
+  min_price:number|null; max_price:number|null;
+};
 type User = { id:number; username:string; role:string; is_active:boolean };
 type Monitor = { enabled:boolean; interval_minutes:number; next_run_at:string|null };
 
-const emptyFilter = {
+const emptyFilter: FilterDraft = {
   name:"Новый фильтр", enabled:true, brand_id:null, model_id:null,
   min_year:null,max_year:null,min_mileage:null,max_mileage:null,min_price:null,max_price:null
 };
@@ -147,7 +152,7 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
   const [brands,setBrands]=useState<Brand[]>([]);
   const [models,setModels]=useState<Model[]>([]);
   const [filters,setFilters]=useState<Filter[]>([]);
-  const [filter,setFilter]=useState({...emptyFilter});
+  const [filter,setFilter]=useState<FilterDraft>({...emptyFilter});
   const [editing,setEditing]=useState<number|null>(null);
   const [cars,setCars]=useState<Car[]>([]);
   const [loading,setLoading]=useState(true);
