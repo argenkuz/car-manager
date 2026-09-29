@@ -27,7 +27,7 @@ type User = { id:number; username:string; role:string; is_active:boolean };
 type Monitor = { enabled:boolean; interval_minutes:number; next_run_at:string|null };
 
 const emptyFilter: FilterDraft = {
-  name:"Новый фильтр", enabled:true, brand_id:null, model_id:null, model_detail_id:null, grade_id:null, grade_detail_id:null,
+  name:"", enabled:true, brand_id:null, model_id:null, model_detail_id:null, grade_id:null, grade_detail_id:null,
   min_year:null,max_year:null,min_mileage:null,max_mileage:null,min_price:null,max_price:null,
   fuel_ids:[],mission_ids:[],color_ids:[],option_ids:[],accident:null,sido_ids:[],sido_area_ids:[],danji_ids:[]
 };
@@ -273,25 +273,46 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
           <div className="card-title">{editing?"РЕДАКТИРОВАНИЕ ФИЛЬТРА":"НОВЫЙ ФИЛЬТР"}</div>
           <input placeholder="Название фильтра" value={filter.name} onChange={e=>setFilter({...filter,name:e.target.value})}/>
           <label>Марка</label>
-          <label>Марка</label>
-          <select value={filter.brand_id||""} onChange={e=>setFilter({...filter,brand_id:e.target.value||null,model_id:null,model_detail_id:null,grade_id:null,grade_detail_id:null})}><option value="">Все марки</option>{brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
+          <select value={filter.brand_id||""} onChange={e=>setFilter({...filter,brand_id:e.target.value||null,model_id:null,model_detail_id:null,grade_id:null,grade_detail_id:null})}>
+            <option value="">Все марки</option>
+            {brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
           <label>Модель</label>
-          <select value={filter.model_id||""} disabled={!filter.brand_id} onChange={e=>setFilter({...filter,model_id:e.target.value||null,model_detail_id:null,grade_id:null,grade_detail_id:null})}><option value="">Все модели</option>{models.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select>
+          <select value={filter.model_id||""} disabled={!filter.brand_id} onChange={e=>setFilter({...filter,model_id:e.target.value||null,model_detail_id:null,grade_id:null,grade_detail_id:null})}>
+            <option value="">Все модели</option>
+            {models.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
           <label>Поколение / версия</label>
-          <select value={filter.model_detail_id||""} disabled={!filter.model_id} onChange={e=>setFilter({...filter,model_detail_id:e.target.value||null,grade_id:null,grade_detail_id:null})}><option value="">Все поколения</option>{details.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+          <select value={filter.model_detail_id||""} disabled={!filter.model_id} onChange={e=>setFilter({...filter,model_detail_id:e.target.value||null,grade_id:null,grade_detail_id:null})}>
+            <option value="">Все поколения</option>
+            {details.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
           <label>Комплектация</label>
-          <select value={filter.grade_id||""} disabled={!filter.model_detail_id} onChange={e=>setFilter({...filter,grade_id:e.target.value||null,grade_detail_id:null})}><option value="">Все комплектации</option>{grades.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+          <select value={filter.grade_id||""} disabled={!filter.model_detail_id} onChange={e=>setFilter({...filter,grade_id:e.target.value||null,grade_detail_id:null})}>
+            <option value="">Все комплектации</option>
+            {grades.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
           <label>Детальная комплектация</label>
-          <select value={filter.grade_detail_id||""} disabled={!filter.grade_id} onChange={e=>setFilter({...filter,grade_detail_id:e.target.value||null})}><option value="">Все варианты</option>{gradeDetails.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
-          <div className="grid2"><NumberField title="Год от" value={filter.min_year} set={v=>setFilter({...filter,min_year:v})}/><NumberField title="Год до" value={filter.max_year} set={v=>setFilter({...filter,max_year:v})}/></div>
-          <div className="grid2"><NumberField title="Пробег от" value={filter.min_mileage} set={v=>setFilter({...filter,min_mileage:v})}/><NumberField title="Пробег до" value={filter.max_mileage} set={v=>setFilter({...filter,max_mileage:v})}/></div>
-          <div className="grid2"><NumberField title="Цена от" value={filter.min_price} set={v=>setFilter({...filter,min_price:v})}/><NumberField title="Цена до" value={filter.max_price} set={v=>setFilter({...filter,max_price:v})}/></div>
+          <select value={filter.grade_detail_id||""} disabled={!filter.grade_id} onChange={e=>setFilter({...filter,grade_detail_id:e.target.value||null})}>
+            <option value="">Все варианты</option>
+            {gradeDetails.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
+          <div className="grid2">
+            <NumberField title="Год от" value={filter.min_year} set={v=>setFilter({...filter,min_year:v})}/>
+            <NumberField title="Год до" value={filter.max_year} set={v=>setFilter({...filter,max_year:v})}/>
+          </div>
+          <div className="grid2">
+            <NumberField title="Пробег от" value={filter.min_mileage} set={v=>setFilter({...filter,min_mileage:v})}/>
+            <NumberField title="Пробег до" value={filter.max_mileage} set={v=>setFilter({...filter,max_mileage:v})}/>
+          </div>
+          <div className="grid2">
+            <NumberField title="Цена от" value={filter.min_price} set={v=>setFilter({...filter,min_price:v})}/>
+            <NumberField title="Цена до" value={filter.max_price} set={v=>setFilter({...filter,max_price:v})}/>
+          </div>
           <MultiSelect title="Топливо" items={fuel} selected={filter.fuel_ids} set={v=>setFilter({...filter,fuel_ids:v})}/>
           <MultiSelect title="Коробка передач" items={mission} selected={filter.mission_ids} set={v=>setFilter({...filter,mission_ids:v})}/>
           <MultiSelect title="Цвет" items={colors} selected={filter.color_ids} set={v=>setFilter({...filter,color_ids:v})}/>
           <MultiSelect title="Опции" items={options} selected={filter.option_ids} set={v=>setFilter({...filter,option_ids:v})}/>
-          <div className="grid2"><NumberField title="Пробег от" value={filter.min_mileage} set={v=>setFilter({...filter,min_mileage:v})}/><NumberField title="Пробег до" value={filter.max_mileage} set={v=>setFilter({...filter,max_mileage:v})}/></div>
-          <div className="grid2"><NumberField title="Цена от" value={filter.min_price} set={v=>setFilter({...filter,min_price:v})}/><NumberField title="Цена до" value={filter.max_price} set={v=>setFilter({...filter,max_price:v})}/></div>
           <button className="primary" onClick={()=>void saveFilter()}>{editing?"Сохранить изменения":"Добавить фильтр"}</button>
           {editing&&<button className="link" onClick={()=>{setEditing(null);setFilter({...emptyFilter})}}>Отмена</button>}
         </div>
