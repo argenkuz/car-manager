@@ -34,7 +34,7 @@ def extract_scripts(html: str) -> list[str]:
 def extract_forms(html: str) -> list[dict]:
     forms = []
     for match in re.finditer(
-        r"<form\\b([^>]*)>(.*?)</form>",
+        r"<form\b([^>]*)>(.*?)</form>",
         html,
         flags=re.IGNORECASE | re.DOTALL,
     ):
@@ -43,7 +43,7 @@ def extract_forms(html: str) -> list[dict]:
         method_match = re.search(r'method=["\']([^"\']*)["\']', attrs, re.I)
         inputs = []
         for input_match in re.finditer(
-            r"<input\\b([^>]*)>",
+            r"<input\b([^>]*)>",
             body,
             flags=re.IGNORECASE,
         ):
