@@ -104,8 +104,8 @@ async def main():
         print("Length:", len(response.text))
 
         html = response.text
-        Path("backend/carmanager_car_data.html").write_text(html, encoding="utf-8")
-        print("Saved: backend/carmanager_car_data.html")
+        Path("carmanager_car_data.html").write_text(html, encoding="utf-8")
+        print("Saved: carmanager_car_data.html")
 
         print("\n3. FORMS")
         for form in extract_forms(html):
