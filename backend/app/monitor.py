@@ -18,16 +18,37 @@ def _get_settings(db):
         db.refresh(row)
     return row
 
+def _loads(value: str | None) -> list[str]:
+    if not value:
+        return []
+    import json
+    try:
+        data = json.loads(value)
+        return [str(x) for x in data] if isinstance(data, list) else []
+    except (TypeError, ValueError):
+        return []
+
+
 def _filter_payload(f: Filter) -> dict:
     return {
         "brand_id": f.brand_id,
         "model_id": f.model_id,
+        "model_detail_id": f.model_detail_id,
+        "grade_id": f.grade_id,
+        "grade_detail_id": f.grade_detail_id,
         "min_year": f.min_year,
         "max_year": f.max_year,
         "min_mileage": f.min_mileage,
         "max_mileage": f.max_mileage,
         "min_price": f.min_price,
         "max_price": f.max_price,
+        "fuel_ids": _loads(f.fuel_ids),
+        "mission_ids": _loads(f.mission_ids),
+        "color_ids": _loads(f.color_ids),
+        "option_ids": _loads(f.option_ids),
+        "sido_ids": _loads(f.sido_ids),
+        "sido_area_ids": _loads(f.sido_area_ids),
+        "danji_ids": _loads(f.danji_ids),
     }
 
 def _matches(car, f: Filter) -> bool:
@@ -48,7 +69,8 @@ async def run_once() -> dict:
         total_new = 0
         for f in filters:
             response = await client.search(_filter_payload(f))
-            cars = parse_cars(response.text, base_url=settings.carmanager_base_url)
+            response.raise_for_status()
+            cars = parse_cars(response.text, base_url=settings.carmanager_base_url, enc_check=client.enc_check)
             for car in cars:
                 if not _matches(car, f):
                     continue
