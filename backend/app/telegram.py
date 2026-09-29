@@ -16,13 +16,12 @@ async def send_message(text: str) -> None:
     try:
         recipients = [
             row.telegram_id
-            for row in db.scalars(select(TelegramRecipient).order_by(TelegramRecipient.id)).all()
+            for row in db.scalars(
+                select(TelegramRecipient).order_by(TelegramRecipient.id)
+            ).all()
         ]
     finally:
         db.close()
-
-    if not recipients and settings.telegram_chat_id:
-        recipients = [int(settings.telegram_chat_id)]
 
     if not recipients:
         return
@@ -30,8 +29,14 @@ async def send_message(text: str) -> None:
     url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
     async with httpx.AsyncClient(timeout=15) as client:
         for telegram_id in recipients:
-            await client.post(url, json={
-                "chat_id": telegram_id,
-                "text": text,
-                "disable_web_page_preview": False,
-            })
+            response = await client.post(
+                url,
+                json={
+                    "chat_id": telegram_id,
+                    "text": text,
+                    "disable_web_page_preview": False,
+                },
+            )
+            if response.status_code >= 400:
+                detail = response.text[:500]
+                print(f"Telegram send failed for {telegram_id}: {detail}")
