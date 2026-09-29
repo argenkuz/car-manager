@@ -28,11 +28,11 @@ def _field(row: str, pattern: str) -> str:
     return _text(m.group(1)).strip() if m else ""
 
 def parse_cars(html: str, base_url: str, enc_check: str | None = None) -> list[Car]:
-    rows=re.findall(r"<tr[^>]*class=["'][^"']*uc_carcss[^"']*["'][^>]*>(.*?)</tr>",html,re.I|re.S)
+    rows=re.findall(r'<tr[^>]*class=["\'][^"\']*uc_carcss[^"\']*["\'][^>]*>(.*?)</tr>',html,re.I|re.S)
     result=[];seen=set()
     for row in rows:
-        m=re.search(r'data-carno=["\']([^"\']+)',row,re.I)
-        if not m:m=re.search(r'class=["\']custom-check["\'][^>]*value=["\']([^"\']+)',row,re.I)
+        m=re.search(r'data-carno=["\']([^"\']+)'',row,re.I)
+        if not m:m=re.search(r'class=["\']custom-check["\'][^>]*value=["\']([^"\']+)'',row,re.I)
         if not m:continue
         car_id=m.group(1)
         if car_id in seen:continue
