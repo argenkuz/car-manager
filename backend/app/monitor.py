@@ -58,7 +58,7 @@ async def run_once() -> dict:
                 seen = SeenCar(filter_id=f.id, car_id=car.id)
                 db.add(seen)
                 total_new += 1
-                if settings.telegram_bot_token and settings.telegram_chat_id:
+                if settings.telegram_bot_token:
                     message = (
                         f"🚗 {car.title}\n"
                         f"Год: {car.year or '-'} | Пробег: {car.mileage or '-'} км\n"
