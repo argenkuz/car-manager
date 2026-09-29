@@ -44,7 +44,12 @@ async function api(path:string, options:RequestInit={}) {
   const res = await fetch(API + path, {...options, headers});
   const data = await res.json().catch(()=>({}));
   if (res.status === 401) clearToken();
-  if (!res.ok) throw new Error(data.detail || "Ошибка запроса");
+  if (!res.ok) {
+    const detail = Array.isArray(data.detail)
+      ? data.detail.map((x:any)=>x.msg || x.message || JSON.stringify(x)).join("; ")
+      : (typeof data.detail === "string" ? data.detail : "Ошибка запроса");
+    throw new Error(detail);
+  }
   return data;
 }
 
@@ -230,11 +235,31 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
   };
 
   async function saveFilter(){
+    setError("");
+    const y1=filter.min_year, y2=filter.max_year;
+    const m1=filter.min_mileage, m2=filter.max_mileage;
+    const p1=filter.min_price, p2=filter.max_price;
+
+    if(y1!==null && (y1<1900 || y1>2100)){setError("Год от должен быть от 1900 до 2100");return;}
+    if(y2!==null && (y2<1900 || y2>2100)){setError("Год до должен быть от 1900 до 2100");return;}
+    if(y1!==null && y2!==null && y1>y2){setError("Год от не может быть больше года до");return;}
+    if(m1!==null && m1<0 || m2!==null && m2<0){setError("Пробег не может быть отрицательным");return;}
+    if(m1!==null && m2!==null && m1>m2){setError("Пробег от не может быть больше пробега до");return;}
+    if(p1!==null && p1<0 || p2!==null && p2<0){setError("Цена не может быть отрицательной");return;}
+    if(p1!==null && p2!==null && p1>p2){setError("Цена от не может быть больше цены до");return;}
+
     try{
-      setError("");
-      const payload={...filter,min_year:filter.min_year||null,max_year:filter.max_year||null,min_mileage:filter.min_mileage||null,max_mileage:filter.max_mileage||null,min_price:filter.min_price||null,max_price:filter.max_price||null};
-      const saved:Filter=editing?await api("/api/filters/"+editing,{method:"PATCH",body:JSON.stringify(payload)}):await api("/api/filters",{method:"POST",body:JSON.stringify(payload)});
-      setFilters(v=>editing?v.map(x=>x.id===saved.id?saved:x):[...v,saved]);setEditing(null);setFilter({...emptyFilter});
+      const payload={
+        ...filter,
+        name:filter.name.trim() || "Новый фильтр",
+        min_year:y1,max_year:y2,min_mileage:m1,max_mileage:m2,min_price:p1,max_price:p2
+      };
+      const saved:Filter=editing
+        ? await api("/api/filters/"+editing,{method:"PATCH",body:JSON.stringify(payload)})
+        : await api("/api/filters",{method:"POST",body:JSON.stringify(payload)});
+      setFilters(v=>editing?v.map(x=>x.id===saved.id?saved:x):[...v,saved]);
+      setEditing(null);
+      setFilter({...emptyFilter});
     }catch(e){setError(e instanceof Error?e.message:"Не удалось сохранить фильтр")}
   }
   async function removeFilter(id:number){
@@ -331,8 +356,8 @@ function MultiSelect({title,items,selected,set}:{title:string;items:Option[];sel
   return <div className="multi"><label>{title}{selected.length?" ("+selected.length+")":""}</label><div className="multi-list">{items.length===0?<span className="muted">Нет данных</span>:items.map(x=><label className="check" key={x.id}><input type="checkbox" checked={selected.includes(x.id)} onChange={()=>toggle(x.id)}/><span>{x.name}</span></label>)}</div></div>;
 }
 
-function NumberField({title,value,set}:{title:string,value:number|null,set:(v:number|null)=>void}){
-  return <div><label>{title}</label><input type="number" value={value??""} onChange={e=>set(e.target.value?Number(e.target.value):null)}/></div>
+function NumberField({title,value,set,min,max}:{title:string,value:number|null,set:(v:number|null)=>void,min?:number,max?:number}){
+  return <div><label>{title}</label><input type="number" min={min} max={max} value={value??""} onChange={e=>set(e.target.value===""?null:Number(e.target.value))}/></div>
 }
 
 export default function App(){
