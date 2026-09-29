@@ -1,20 +1,10 @@
 # CarManager backend
 
-Run from backend:
+Run:
 
-    python -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
+    python -m pip install -r requirements.txt
+    python -m uvicorn app.main:app --reload
 
-Copy .env.example to .env and fill credentials locally.
+Swagger: http://127.0.0.1:8000/docs
 
-    uvicorn app.main:app --reload --port 8000
-
-Endpoints:
-
-    GET /health
-    GET /api/catalog/brands
-    GET /api/catalog/brands/{brand_id}/models
-    GET /api/catalog/models?q=bmw
-    POST /api/filters/preview
-    GET /api/monitor/status
+The CarManager login client is ready. The exact listing endpoint is kept configurable until the real search request is captured.
