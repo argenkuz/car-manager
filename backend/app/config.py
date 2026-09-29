@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     monitor_interval_minutes: int = 10
     frontend_origins: list[str] = ["http://localhost:5173"]
     environment: str = "development"
+    master_password: str = ""
+    session_days: int = 30
 
     model_config = SettingsConfigDict(
         env_file=".env",
