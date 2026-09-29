@@ -9,7 +9,6 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./car_manager.db"
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
-    monitor_interval_minutes: int = 10
     frontend_origins: list[str] = ["http://localhost:5173"]
     environment: str = "development"
     master_password: str = ""
