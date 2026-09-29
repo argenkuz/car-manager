@@ -160,6 +160,35 @@ class CarManagerClient:
             }
         }
 
+    async def post_json(self, path: str, data: Any | None = None) -> Any:
+        """POST to a CarManager JSON catalog endpoint using the authenticated session."""
+        await self.ensure_login()
+        response = await self.client.post(
+            path,
+            json=data if data is not None else {},
+            headers={
+                "Content-Type": "application/json; charset=utf-8",
+                "X-Requested-With": "XMLHttpRequest",
+                "Referer": f"{settings.carmanager_base_url.rstrip('/')}/Car/Data",
+            },
+        )
+
+        if response.status_code in {301, 302, 303, 307, 308} or "User/Login" in str(response.url):
+            self.authenticated = False
+            await self.ensure_login()
+            response = await self.client.post(
+                path,
+                json=data if data is not None else {},
+                headers={
+                    "Content-Type": "application/json; charset=utf-8",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Referer": f"{settings.carmanager_base_url.rstrip('/')}/Car/Data",
+                },
+            )
+
+        response.raise_for_status()
+        return response.json()
+
     async def search(self, filters: dict[str, Any], page: int = 1, page_size: int = 50) -> httpx.Response:
         await self.ensure_login()
         payload = self._build_search_payload(filters, page=page, page_size=page_size)
