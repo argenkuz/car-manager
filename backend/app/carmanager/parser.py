@@ -1,40 +1,53 @@
 from __future__ import annotations
 import re
 from urllib.parse import urljoin
-from bs4 import BeautifulSoup
 from app.carmanager.models import Car
 
-def _int(value: str | None):
-    if not value: return None
-    digits = re.sub(r"[^0-9]", "", value)
+def _text(fragment: str) -> str:
+    return re.sub(r"<[^>]+>", " ", fragment)
+
+def _year(value: str) -> int | None:
+    m=re.search(r"(19|20)\d{2}",value)
+    return int(m.group(0)) if m else None
+
+def _mileage(value: str) -> int | None:
+    m=re.search(r"(\d+(?:\.\d+)?)\s*(만|천)?",value.replace(",",""))
+    if not m:return None
+    n=float(m.group(1))
+    if m.group(2)=="만":n*=10000
+    if m.group(2)=="천":n*=1000
+    return int(n)
+
+def _price(value: str) -> int | None:
+    if not value or "상담" in value:return None
+    digits=re.sub(r"[^0-9]","",value)
     return int(digits) if digits else None
 
-def parse_cars(html: str, base_url: str) -> list[Car]:
-    soup = BeautifulSoup(html, "html.parser")
-    cars: list[Car] = []
-    nodes = soup.select("[data-car-id], [data-id], .car-item, .car_list, li[class*='car']")
-    seen: set[str] = set()
-    for node in nodes:
-        car_id = node.get("data-car-id") or node.get("data-id")
-        link = node.select_one("a[href]")
-        href = link.get("href") if link else None
-        if not car_id and href:
-            m = re.search(r"(?:idx|id|carNo|car_no)[=/]([A-Za-z0-9_-]+)", href)
-            if m: car_id = m.group(1)
-        if not car_id:
-            continue
-        car_id = str(car_id)
-        if car_id in seen: continue
+def _field(row: str, pattern: str) -> str:
+    m=re.search(pattern,row,re.I|re.S)
+    return _text(m.group(1)).strip() if m else ""
+
+def parse_cars(html: str, base_url: str, enc_check: str | None = None) -> list[Car]:
+    rows=re.findall(r"<tr[^>]*class=["'][^"']*uc_carcss[^"']*["'][^>]*>(.*?)</tr>",html,re.I|re.S)
+    result=[];seen=set()
+    for row in rows:
+        m=re.search(r'data-carno=["\']([^"\']+)',row,re.I)
+        if not m:m=re.search(r'class=["\']custom-check["\'][^>]*value=["\']([^"\']+)',row,re.I)
+        if not m:continue
+        car_id=m.group(1)
+        if car_id in seen:continue
+        maker=_field(row,r'class=["\'][^"\']*uc_carmaker[^"\']*["\'][^>]*>(.*?)</')
+        title=_field(row,r'<td[^>]*class=["\'][^"\']*uc_textleft[^"\']*["\'][^>]*>.*?<a[^>]*>(.*?)</a>')
+        year=_field(row,r'class=["\'][^"\']*uc_carreg[^"\']*["\'][^>]*>(.*?)</')
+        mileage=_field(row,r'class=["\'][^"\']*uc_carusekm[^"\']*["\'][^>]*>(.*?)</')
+        price=_field(row,r'class=["\'][^"\']*uc_caramount[^"\']*["\'][^>]*>(.*?)</')
+        area=_field(row,r'class=["\'][^"\']*uc_cararea[^"\']*["\'][^>]*>(.*?)</')
+        dealer=_field(row,r'class=["\'][^"\']*uc_cardealer[^"\']*["\'][^>]*>(.*?)</')
+        phone=_field(row,r'class=["\'][^"\']*uc_cardealer_phone[^"\']*["\'][^>]*>(.*?)</')
+        img=re.search(r'<img[^>]*class=["\'][^"\']*thumbnail[^"\']*[^>]*src=["\']([^"\']+)',row,re.I|re.S)
+        location=area
+        if dealer:location=f"{location} · {dealer}" if location else dealer
+        if phone:location=f"{location} · {phone}" if location else phone
         seen.add(car_id)
-        text = node.get_text(" ", strip=True)
-        title = (link.get_text(" ", strip=True) if link else text[:150]).strip()
-        cars.append(Car(
-            id=car_id,
-            title=title or car_id,
-            year=_int((re.search(r"(20\d{2})", text) or [None, None])[1]),
-            mileage=_int((re.search(r"([0-9][0-9,]*)\s*(?:km|KM|㎞|키로)", text) or [None, None])[1]),
-            price=_int((re.search(r"([0-9][0-9,]*)\s*(?:만원|원|₩)", text) or [None, None])[1]),
-            location=None,
-            url=urljoin(base_url, href) if href else None,
-        ))
-    return cars
+        result.append(Car(id=car_id,title=title or car_id,brand=maker.strip("[]") or None,model=title or None,year=_year(year),mileage=_mileage(mileage),price=_price(price),location=location or None,url=None,image_url=urljoin(base_url,img.group(1)) if img else None))
+    return result
