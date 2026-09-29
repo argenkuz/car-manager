@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -31,6 +31,16 @@ class FilterPayload(BaseModel):
     sido_ids: list[str] = Field(default_factory=list)
     sido_area_ids: list[str] = Field(default_factory=list)
     danji_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_ranges(self):
+        if self.min_year is not None and self.max_year is not None and self.min_year > self.max_year:
+            raise ValueError("Год от не может быть больше года до")
+        if self.min_mileage is not None and self.max_mileage is not None and self.min_mileage > self.max_mileage:
+            raise ValueError("Пробег от не может быть больше пробега до")
+        if self.min_price is not None and self.max_price is not None and self.min_price > self.max_price:
+            raise ValueError("Цена от не может быть больше цены до")
+        return self
 
 
 def _loads(value: str | None) -> list[str]:
