@@ -12,10 +12,10 @@ CATALOG_PATH = ROOT / "data" / "carmanager_catalog.json"
 
 SOURCE_FILES = {
     "brands": (ROOT / "carmanager_js" / "carmanager_CarBaseMaker.js", "CarBaseMaker"),
-    "models": (ROOT / "carmanager_CarBaseModel.js", "CarBaseModel"),
-    "model_details": (ROOT / "carmanager_CarBaseModelDetail.js", "CarBaseModelDetail"),
-    "grades": (ROOT / "carmanager_CarBaseGrade.js", "CarBaseGrade"),
-    "grade_details": (ROOT / "carmanager_CarBaseGradeDetail.js", "CarBaseGradeDetail"),
+    "models": (ROOT / "carmanager_js" / "carmanager_CarBaseModel.js", "CarBaseModel"),
+    "model_details": (ROOT / "carmanager_js" / "carmanager_CarBaseModelDetail.js", "CarBaseModelDetail"),
+    "grades": (ROOT / "carmanager_js" / "carmanager_CarBaseGrade.js", "CarBaseGrade"),
+    "grade_details": (ROOT / "carmanager_js" / "carmanager_CarBaseGradeDetail.js", "CarBaseGradeDetail"),
 }
 
 
