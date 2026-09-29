@@ -68,10 +68,13 @@ async def run_once() -> dict:
         filters = db.scalars(select(Filter).where(Filter.enabled == True)).all()
         total_new = 0
         for f in filters:
-            response = await client.search(_filter_payload(f))
-            response.raise_for_status()
-            cars = parse_cars(response.text, base_url=settings.carmanager_base_url, enc_check=client.enc_check)
-            for car in cars:
+            page = 1
+            page_size = 100
+            while page <= 200:
+                response = await client.search(_filter_payload(f), page=page, page_size=page_size)
+                response.raise_for_status()
+                cars = parse_cars(response.text, base_url=settings.carmanager_base_url, enc_check=client.enc_check)
+                for car in cars:
                 if not _matches(car, f):
                     continue
                 exists = db.scalar(select(SeenCar).where(SeenCar.filter_id == f.id, SeenCar.car_id == car.id))
@@ -90,6 +93,9 @@ async def run_once() -> dict:
                     )
                     await send_message(message)
                     seen.notified = True
+                if len(cars) < page_size:
+                    break
+                page += 1
         settings_row.next_run_at = datetime.utcnow() + timedelta(minutes=settings_row.interval_minutes)
         db.commit()
         return {"filters": len(filters), "new_cars": total_new}
