@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     carmanager_search_path: str = ""
     database_url: str = "sqlite+aiosqlite:///./car_manager.db"
     telegram_bot_token: str = ""
-    telegram_chat_id: str = ""
     frontend_origins: list[str] = ["http://localhost:5173"]
     environment: str = "development"
     master_password: str = ""
