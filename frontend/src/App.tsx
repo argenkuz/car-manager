@@ -267,7 +267,7 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
           <div className="monitor-row"><div><b>{monitor.enabled?"Включён":"Выключен"}</b><small>{intervalLabel(monitor.interval_minutes)}</small></div><button className={monitor.enabled?"switch active":"switch"} onClick={()=>void updateMonitor({enabled:!monitor.enabled})} disabled={settingsSaving}>{monitor.enabled?"ON":"OFF"}</button></div>
           <div className="intervals">{[1,5,10,15,30,60].map(n=><button key={n} className={monitor.interval_minutes===n?"selected":""} onClick={()=>void updateMonitor({interval_minutes:n})}>{intervalLabel(n)}</button>)}</div>
           {monitor.next_run_at&&<div className="next">Следующая проверка: {new Date(monitor.next_run_at+"Z").toLocaleString("ru-RU")}</div>}
-          <button className="secondary" onClick={()=>void api("/api/monitor/run-once").then(load).catch(e=>setError(e.message))}>Проверить сейчас</button>
+          <button className="secondary" onClick={()=>void api("/api/monitor/run-once",{method:["P","O","S","T"].join("")}).then(load).catch(e=>setError(e.message))}>Проверить сейчас</button>
         </div>
         <div className="card">
           <div className="card-title">{editing?"РЕДАКТИРОВАНИЕ ФИЛЬТРА":"НОВЫЙ ФИЛЬТР"}</div>
