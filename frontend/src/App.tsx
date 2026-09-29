@@ -292,14 +292,9 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
             <option value="">Все комплектации</option>
             {grades.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
           </select>
-          <label>Детальная комплектация</label>
-          <select value={filter.grade_detail_id||""} disabled={!filter.grade_id} onChange={e=>setFilter({...filter,grade_detail_id:e.target.value||null})}>
-            <option value="">Все варианты</option>
-            {gradeDetails.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
-          </select>
           <div className="grid2">
-            <NumberField title="Год от" value={filter.min_year} set={v=>setFilter({...filter,min_year:v})}/>
-            <NumberField title="Год до" value={filter.max_year} set={v=>setFilter({...filter,max_year:v})}/>
+            <NumberField title="Год от" min={1900} max={2100} value={filter.min_year} set={v=>setFilter({...filter,min_year:v})}/>
+            <NumberField title="Год до" min={1900} max={2100} value={filter.max_year} set={v=>setFilter({...filter,max_year:v})}/>
           </div>
           <div className="grid2">
             <NumberField title="Пробег от" value={filter.min_mileage} set={v=>setFilter({...filter,min_mileage:v})}/>
@@ -311,8 +306,6 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
           </div>
           <MultiSelect title="Топливо" items={fuel} selected={filter.fuel_ids} set={v=>setFilter({...filter,fuel_ids:v})}/>
           <MultiSelect title="Коробка передач" items={mission} selected={filter.mission_ids} set={v=>setFilter({...filter,mission_ids:v})}/>
-          <MultiSelect title="Цвет" items={colors} selected={filter.color_ids} set={v=>setFilter({...filter,color_ids:v})}/>
-          <MultiSelect title="Опции" items={options} selected={filter.option_ids} set={v=>setFilter({...filter,option_ids:v})}/>
           <button className="primary" onClick={()=>void saveFilter()}>{editing?"Сохранить изменения":"Добавить фильтр"}</button>
           {editing&&<button className="link" onClick={()=>{setEditing(null);setFilter({...emptyFilter})}}>Отмена</button>}
         </div>
