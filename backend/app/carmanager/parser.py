@@ -1,6 +1,6 @@
 from __future__ import annotations
 import re
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 from app.carmanager.models import Car
 
 def _text(fragment: str) -> str:
@@ -22,6 +22,16 @@ def _price(value: str) -> int | None:
     if not value or "상담" in value:return None
     digits=re.sub(r"[^0-9]","",value)
     return int(digits) if digits else None
+
+def _price_text(value: str) -> str | None:
+    value = re.sub(r"\s+", " ", value).strip()
+    if not value:
+        return None
+    if "상담" in value:
+        return "По запросу"
+    digits = re.sub(r"[^0-9]", "", value)
+    return f"{int(digits):,} 만원".replace(",", " ") if digits else value
+
 
 def _field(row: str, pattern: str) -> str:
     m=re.search(pattern,row,re.I|re.S)
@@ -45,11 +55,19 @@ def parse_cars(html: str, base_url: str, enc_check: str | None = None) -> list[C
         dealer=_field(row,r'class=["\'][^"\']*uc_cardealer[^"\']*["\'][^>]*>(.*?)</')
         phone=_field(row,r'class=["\'][^"\']*uc_cardealer_phone[^"\']*["\'][^>]*>(.*?)</')
         img=re.search(r'<img[^>]*class=["\'][^"\']*thumbnail[^"\']*[^>]*src=["\']([^"\']+)',row,re.I|re.S)
-        hrefs=re.findall(r"""<a[^>]+href=["']([^"']+)["']""", row, re.I | re.S)
-        car_url=next((urljoin(base_url,h) for h in hrefs if "/Car/" in h or "CarNo" in h or "carno" in h),None)
+        detail_match = re.search(
+            r'carmangerDetailWindowPopUp_CHECK\(["\']([^"\']+)["\']\)',
+            row,
+            re.I,
+        )
+        car_url = (
+            f"{base_url.rstrip('/')}/PopupFrame/CarDetailEnc?encarno={quote(detail_match.group(1), safe='')}"
+            if detail_match
+            else None
+        )
         location=area
         if dealer:location=f"{location} · {dealer}" if location else dealer
         if phone:location=f"{location} · {phone}" if location else phone
         seen.add(car_id)
-        result.append(Car(id=car_id,title=title or car_id,brand=maker.strip("[]") or None,model=title or None,year=_year(year),mileage=_mileage(mileage),price=_price(price),location=location or None,url=car_url,image_url=urljoin(base_url,img.group(1)) if img else None))
+        result.append(Car(id=car_id,title=title or car_id,brand=maker.strip("[]") or None,model=title or None,year=_year(year),mileage=_mileage(mileage),price=_price(price),price_text=_price_text(price),location=location or None,url=car_url,image_url=urljoin(base_url,img.group(1)) if img else None))
     return result
