@@ -245,7 +245,19 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}){
   const [monitor,setMonitor]=useState<Monitor>({enabled:false,interval_minutes:10,next_run_at:null}),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[telegramUnlocked,setTelegramUnlocked]=useState(false),[telegramMasterPassword,setTelegramMasterPassword]=useState(""),[telegramIdInput,setTelegramIdInput]=useState(""),[telegramRecipients,setTelegramRecipients]=useState<{telegram_id:number;created_at:string}[]>([]),[telegramLoading,setTelegramLoading]=useState(false),[telegramError,setTelegramError]=useState(""),[editing,setEditing]=useState<Filter|null>(null),[modal,setModal]=useState<"filter"|null>(null),[error,setError]=useState("");
   const normalize=(a:any[],ids:string[],names:string[]):Option[] => (a||[]).map(x=>{const id=ids.map(k=>x?.[k]).find(v=>v!==undefined&&v!==null&&String(v)!=="");const name=names.map(k=>x?.[k]).find(v=>v!==undefined&&v!==null&&String(v)!=="");return{id:String(id??""),name:String(name??"")}}).filter(x=>x.id&&x.name);
   async function load(){
-    try{setLoading(true);setError("");const[b,f,m,c]=await Promise.all([api("/api/catalog/brands"),api("/api/filters"),api("/api/monitor/status"),api("/api/catalog/car-filters")]);setBrands(b.items||[]);setFilters(f||[]);setMonitor(m);setFuel(normalize(c.fuel,["FKeyNo","id","Id"],["FuelName","name","Name"]));setMission(normalize(c.mission,["MKeyNo","id","Id"],["MissionName","name","Name"]));setColor(normalize(c.color,["CKeyNo","id","Id"],["ColorName","name","Name"]));setOptions(normalize([...(c.option_base||[]),...(c.option_etc||[])],["CarOptionNo","OptionNo","id","Id"],["CarOptionName","OptionName","name","Name"]));setSido(normalize(c.sido,["SKeyNo","SidoNo","SiDoNo","id","Id"],["SidoName","SiDoName","name","Name"]))}catch(e){setError(e instanceof Error?e.message:"Не удалось загрузить данные")}finally{setLoading(false)}
+    try{
+      setLoading(true);setError("");
+      const [b,f,m]=await Promise.all([api("/api/catalog/brands"),api("/api/filters"),api("/api/monitor/status")]);
+      setBrands(b.items||[]);setFilters(f||[]);setMonitor(m);
+      setLoading(false);
+      api("/api/catalog/car-filters").then(c=>{
+        setFuel(normalize(c.fuel,["FKeyNo","id","Id"],["FuelName","name","Name"]));
+        setMission(normalize(c.mission,["MKeyNo","id","Id"],["MissionName","name","Name"]));
+        setColor(normalize(c.color,["CKeyNo","id","Id"],["ColorName","name","Name"]));
+        setOptions(normalize([...(c.option_base||[]),...(c.option_etc||[])],["CarOptionNo","OptionNo","id","Id"],["CarOptionName","name","Name"]));
+        setSido(normalize(c.sido,["SKeyNo","SidoNo","SiDoNo","id","Id"],["SidoName","SiDoName","name","Name"]));
+      }).catch(()=>{});
+    }catch(e){setError(e instanceof Error?e.message:"Не удалось загрузить данные");setLoading(false)}
   }
   useEffect(()=>{void load()},[]);
   const active=useMemo(()=>filters.filter(x=>x.enabled).length,[filters]);
