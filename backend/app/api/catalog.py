@@ -52,45 +52,23 @@ async def clear_cache():
 
 @router.get("/search-filters")
 async def search_filters():
-    client = CarManagerClient()
+    from pathlib import Path
+    import json
+
+    path = Path(__file__).resolve().parents[2] / "data" / "carmanager_filters.json"
+    if not path.exists():
+        return {
+            "fuel": [], "mission": [], "color": [], "option": [],
+            "sido": [], "sido_area": {}, "danji": {},
+            "price_from": [], "price_to": [],
+            "year_from": [], "year_to": [],
+            "mileage_from": [], "mileage_to": [],
+        }
     try:
-        await client.ensure_login()
-        result = client.get_search_filter_catalog()
-
-        async def safe_json(path: str):
-            try:
-                return await asyncio.wait_for(client.post_json(path), timeout=20)
-            except Exception:
-                return []
-
-        fuel_raw, mission_raw, color_raw, option_base_raw, option_etc_raw = await asyncio.gather(
-            safe_json("/CarBase/JsonBaseCarFuel"),
-            safe_json("/CarBase/JsonBaseCarMission"),
-            safe_json("/CarBase/JsonBaseCarColor"),
-            safe_json("/CarBase/JsonBaseCarOptionBase"),
-            safe_json("/CarBase/JsonBaseCarOptionEtc"),
-        )
-
-        def normalize(items, id_keys, name_keys):
-            out = []
-            for item in items or []:
-                value = next((item.get(k) for k in id_keys if item.get(k) not in (None, "")), None)
-                name = next((item.get(k) for k in name_keys if item.get(k) not in (None, "")), None)
-                if value not in (None, "") and name:
-                    out.append({"id": str(value), "name": str(name)})
-            return out
-
-        result["fuel"] = normalize(fuel_raw, ["FKeyNo"], ["FuelName"]) or result.get("fuel", [])
-        result["mission"] = normalize(mission_raw, ["MKeyNo"], ["MissionName"]) or result.get("mission", [])
-        result["color"] = normalize(color_raw, ["CKeyNo"], ["ColorName"]) or result.get("color", [])
-        result["option"] = (
-            normalize(option_base_raw, ["CarOptionNo"], ["CarOptionName"])
-            + normalize(option_etc_raw, ["CarOptionNo"], ["CarOptionName"])
-        ) or result.get("option", [])
-
-        return result
-    finally:
-        await client.close()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
 
 
 @router.get("/car-filters")
