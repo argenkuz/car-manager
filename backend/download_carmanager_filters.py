@@ -7,9 +7,11 @@ from pathlib import Path
 
 import httpx
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 
 
 ROOT = Path(__file__).resolve().parent
+load_dotenv(ROOT / ".env")
 OUT = ROOT / "data" / "carmanager_filters.json"
 BASE_URL = os.getenv("CARMANAGER_BASE_URL", "https://carmanager.co.kr").rstrip("/")
 USER_ID = os.getenv("CARMANAGER_USER_ID", "")
