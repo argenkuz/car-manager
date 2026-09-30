@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user, require_master_password
 from app.database import get_db
 from app.models import TelegramRecipient, User
+from app.telegram import send_message
 
 router = APIRouter()
 
@@ -62,3 +63,12 @@ def delete_recipient(
     db.delete(row)
     db.commit()
     return {"status": "deleted"}
+
+
+@router.post("/test")
+async def test_telegram(
+    _: str = Depends(master_from_header),
+    user: User = Depends(get_current_user),
+):
+    await send_message("✅ CarManager Monitor: тестовое сообщение Telegram работает.")
+    return {"status": "sent"}
