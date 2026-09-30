@@ -1373,8 +1373,6 @@ button:disabled {
   }
 }
 
-.modal-close{width:34px;height:34px;border:0;border-radius:50%;background:#10131a;color:#70809b;font-size:25px;line-height:1}.modal-close:hover{background:#242936;color:#dce4f3}
-.filter-card-actions{display:flex;gap:7px;margin-top:12px}.filter-card-actions button{min-height:34px;padding:0 10px;border-radius:8px;border:1px solid #292f3d;background:transparent;color:#8795ad;font-size:12px}.filter-card-actions .danger{color:#ff6973;border-color:#5d2930}
-.telegram-recipient-list{display:flex;flex-direction:column;gap:7px}.telegram-recipient{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #292e3a;border-radius:9px;background:#10131a;color:#aeb9cc}.telegram-recipient button{border:1px solid #5d2930;background:transparent;color:#ff6973;border-radius:7px;padding:6px 9px}
-.car-results{display:flex;flex-direction:column;gap:10px}.car-result{display:flex;gap:12px;padding:12px;border:1px solid #292e3a;border-radius:10px;background:#10131a}.car-result img{width:130px;height:88px;object-fit:cover;border-radius:8px}.car-result h3{margin:0 0 6px;font-size:14px;color:#edf1f8}.car-result p{margin:3px 0;color:#71809a;font-size:12px}
-@media(max-width:650px){.car-result img{width:96px;height:72px}}
+
+/* CarManager additions */
+.modal-close{width:34px;height:34px;border:0;border-radius:50%;background:#10131a;color:#70809b;font-size:25px}.filter-card-actions{display:flex;gap:7px;margin-top:12px}.filter-card-actions button{padding:7px 10px;border-radius:8px;border:1px solid #292f3d;background:transparent;color:#8795ad}.telegram-recipient-list{display:flex;flex-direction:column;gap:7px}.telegram-recipient{display:flex;justify-content:space-between;padding:10px;border:1px solid #292e3a;border-radius:9px}.car-results{display:flex;flex-direction:column;gap:10px}.car-result{display:flex;gap:12px;padding:12px;border:1px solid #292e3a;border-radius:10px}.car-result img{width:130px;height:88px;object-fit:cover;border-radius:8px}
