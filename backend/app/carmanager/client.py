@@ -199,9 +199,7 @@ class CarManagerClient:
         await self.ensure_login()
         response = await self.client.post(
             path,
-            content=b"" if data is None else httpx.Request(
-                "POST", path, json=data
-            ).content,
+            json={} if data is None else data,
             headers={
                 "Content-Type": "application/json; charset=utf-8",
                 "X-Requested-With": "XMLHttpRequest",
