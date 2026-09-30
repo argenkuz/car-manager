@@ -50,6 +50,16 @@ async def clear_cache():
     return {"status": "ok", "cache": "cleared"}
 
 
+@router.get("/search-filters")
+async def search_filters():
+    client = CarManagerClient()
+    try:
+        await client.ensure_login()
+        return client.get_search_filter_catalog()
+    finally:
+        await client.close()
+
+
 @router.get("/car-filters")
 async def car_filter_catalog():
     client = CarManagerClient()
