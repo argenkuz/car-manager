@@ -42,6 +42,7 @@ def _filter_payload(f: Filter) -> dict:
         "max_mileage": f.max_mileage,
         "min_price": f.min_price,
         "max_price": f.max_price,
+        "accident": f.accident,
         "fuel_ids": _loads(f.fuel_ids),
         "mission_ids": _loads(f.mission_ids),
         "color_ids": _loads(f.color_ids),
