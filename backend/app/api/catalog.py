@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, HTTPException, Query
 from app.carmanager.catalog import (
     get_brands, get_models, get_model_details, get_grades, get_grade_details,
@@ -51,22 +53,24 @@ async def clear_cache():
 @router.get("/car-filters")
 async def car_filter_catalog():
     client = CarManagerClient()
+    endpoints = {
+        "fuel": "/CarBase/JsonBaseCarFuel",
+        "mission": "/CarBase/JsonBaseCarMission",
+        "color": "/CarBase/JsonBaseCarColor",
+        "option_base": "/CarBase/JsonBaseCarOptionBase",
+        "option_etc": "/CarBase/JsonBaseCarOptionEtc",
+        "sido": "/CodeBase/JsonBaseCodeSiDo",
+    }
+
+    async def load_one(key: str, endpoint: str):
+        try:
+            return key, await asyncio.wait_for(client.post_json(endpoint), timeout=15)
+        except Exception:
+            return key, []
+
     try:
-        endpoints = {
-            "fuel": "/CarBase/JsonBaseCarFuel",
-            "mission": "/CarBase/JsonBaseCarMission",
-            "color": "/CarBase/JsonBaseCarColor",
-            "option_base": "/CarBase/JsonBaseCarOptionBase",
-            "option_etc": "/CarBase/JsonBaseCarOptionEtc",
-            "sido": "/CodeBase/JsonBaseCodeSiDo",
-        }
-        result = {}
-        for key, endpoint in endpoints.items():
-            try:
-                result[key] = await client.post_json(endpoint)
-            except Exception:
-                result[key] = []
-        return result
+        pairs = await asyncio.gather(*(load_one(k, v) for k, v in endpoints.items()))
+        return dict(pairs)
     finally:
         await client.close()
 
