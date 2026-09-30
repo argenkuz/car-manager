@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.carmanager.catalog import (
     get_brands, get_models, get_model_details, get_grades, get_grade_details,
     search_models,
+    clear_catalog_cache,
 )
 from app.carmanager.client import CarManagerClient
 
@@ -41,7 +42,13 @@ async def models_search(q: str = Query(default="", max_length=100)):
     return {"items": search_models(q)}
 
 
-@router.post("/cache/clear")\nasync def clear_cache():\n    clear_catalog_cache()\n    return {"status": "ok", "cache": "cleared"}\n\n\n@router.get("/car-filters")
+@router.post("/cache/clear")
+async def clear_cache():
+    clear_catalog_cache()
+    return {"status": "ok", "cache": "cleared"}
+
+
+@router.get("/car-filters")
 async def car_filter_catalog():
     client = CarManagerClient()
     try:
