@@ -178,7 +178,7 @@ class CarManagerClient:
                 "CarSMoney": self._number(min_price),
                 "CarEMoney": self._number(max_price),
                 "CarIsLPG": "False",
-                "CarIsSago": "False",
+                "CarIsSago": "True" if filters.get("accident") == "0" else "False",
                 "CarIsPhoto": "False",
                 "CarIsSaleAmount": "False",
                 "CarIsCarCheck": "False",
