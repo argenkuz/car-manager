@@ -45,7 +45,7 @@ def parse_cars(html: str, base_url: str, enc_check: str | None = None) -> list[C
         dealer=_field(row,r'class=["\'][^"\']*uc_cardealer[^"\']*["\'][^>]*>(.*?)</')
         phone=_field(row,r'class=["\'][^"\']*uc_cardealer_phone[^"\']*["\'][^>]*>(.*?)</')
         img=re.search(r'<img[^>]*class=["\'][^"\']*thumbnail[^"\']*[^>]*src=["\']([^"\']+)',row,re.I|re.S)
-        hrefs=re.findall(r'<a[^>]+href=["\\']([^"\\']+)["\\']',row,re.I|re.S)
+        hrefs=re.findall(r'<a[^>]+href=["']([^"']+)["']', row, re.I | re.S)
         car_url=next((urljoin(base_url,h) for h in hrefs if "/Car/" in h or "CarNo" in h or "carno" in h),None)
         location=area
         if dealer:location=f"{location} · {dealer}" if location else dealer
