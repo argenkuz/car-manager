@@ -89,7 +89,7 @@ class CarManagerClient:
             for option in node.find_all("option"):
                 value = str(option.get("value") or "").strip()
                 label = option.get_text(" ", strip=True)
-                if label:
+                if value and label:
                     result.append({"id": value, "name": label})
             return result
 
