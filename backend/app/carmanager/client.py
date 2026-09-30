@@ -35,6 +35,7 @@ class CarManagerClient:
         self.authenticated = False
         self.enc_check = ""
         self.pre_page = ""
+        self.search_html = ""
 
     async def login(self) -> bool:
         if not settings.carmanager_user_id or not settings.carmanager_password:
@@ -65,6 +66,7 @@ class CarManagerClient:
         soup = BeautifulSoup(response.text, "html.parser")
         self.enc_check = self._input_value(soup, "EncCheck")
         self.pre_page = self._input_value(soup, "PrePage")
+        self.search_html = response.text
 
         # EncCheck is required by /Car/DataPart. Treat an HTML login page as
         # an authentication failure instead of sending a malformed search.
@@ -72,6 +74,38 @@ class CarManagerClient:
             self.authenticated = False
             return False
         return True
+
+    def get_search_filter_catalog(self) -> dict[str, list[dict[str, str]]]:
+        """Read filter select options exactly as CarManager renders them."""
+        if not self.search_html:
+            return {}
+        soup = BeautifulSoup(self.search_html, "html.parser")
+
+        def select_options(select_id: str) -> list[dict[str, str]]:
+            node = soup.find("select", id=select_id)
+            if node is None:
+                return []
+            result = []
+            for option in node.find_all("option"):
+                value = str(option.get("value") or "").strip()
+                label = option.get_text(" ", strip=True)
+                if label:
+                    result.append({"id": value, "name": label})
+            return result
+
+        return {
+            "fuel": select_options("cbxSearchFuel"),
+            "mission": select_options("cbxSearchMission"),
+            "color": select_options("cbxSearchColor"),
+            "sido": select_options("cbxSearchSiDo"),
+            "price_from": select_options("cbxSearchMoneyS"),
+            "price_to": select_options("cbxSearchMoneyE"),
+            "year_from": select_options("cbxSearchMakeSYear"),
+            "year_to": select_options("cbxSearchMakeEYear"),
+            "mileage_from": select_options("cbxSearchDriveS"),
+            "mileage_to": select_options("cbxSearchDriveE"),
+            "option": select_options("cbxSearchOption"),
+        }
 
     @staticmethod
     def _input_value(soup: BeautifulSoup, name: str) -> str:
