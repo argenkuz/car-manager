@@ -1372,7 +1372,3 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
-
-
-/* CarManager additions */
-.modal-close{width:34px;height:34px;border:0;border-radius:50%;background:#10131a;color:#70809b;font-size:25px}.filter-card-actions{display:flex;gap:7px;margin-top:12px}.filter-card-actions button{padding:7px 10px;border-radius:8px;border:1px solid #292f3d;background:transparent;color:#8795ad}.telegram-recipient-list{display:flex;flex-direction:column;gap:7px}.telegram-recipient{display:flex;justify-content:space-between;padding:10px;border:1px solid #292e3a;border-radius:9px}.car-results{display:flex;flex-direction:column;gap:10px}.car-result{display:flex;gap:12px;padding:12px;border:1px solid #292e3a;border-radius:10px}.car-result img{width:130px;height:88px;object-fit:cover;border-radius:8px}
