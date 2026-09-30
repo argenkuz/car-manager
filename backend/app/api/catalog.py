@@ -41,7 +41,7 @@ async def models_search(q: str = Query(default="", max_length=100)):
     return {"items": search_models(q)}
 
 
-@router.get("/car-filters")
+@router.post("/cache/clear")\nasync def clear_cache():\n    clear_catalog_cache()\n    return {"status": "ok", "cache": "cleared"}\n\n\n@router.get("/car-filters")
 async def car_filter_catalog():
     client = CarManagerClient()
     try:
