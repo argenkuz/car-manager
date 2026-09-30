@@ -6,7 +6,7 @@ from app.database import SessionLocal
 from app.models import Filter, SeenCar, MonitorSettings
 from app.carmanager.client import CarManagerClient
 from app.carmanager.parser import parse_cars
-from app.telegram import send_message
+from app.telegram import send_car_notification
 from app.config import settings
 
 def _get_settings(db):
@@ -85,14 +85,7 @@ async def run_once() -> dict:
                     db.add(seen)
                     total_new += 1
                     if settings.telegram_bot_token:
-                        message = (
-                            f"🚗 {car.title}\n"
-                            f"Год: {car.year or '-'} | Пробег: {car.mileage or '-'} км\n"
-                            f"Цена: {car.price or '-'}\n"
-                            f"Регион: {car.location or '-'}\n"
-                            f"{car.url or ''}"
-                        )
-                        await send_message(message)
+                        await send_car_notification(car)
                         seen.notified = True
                 if len(cars) < page_size:
                     break
