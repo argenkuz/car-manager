@@ -66,41 +66,34 @@ function LoginScreen({onLogin}:{onLogin:(user:User)=>void}) {
 
   async function submit() {
     try {
-      setBusy(true); setError("");
+      setBusy(true);
+      setError("");
       const endpoint = register ? "/api/auth/register" : "/api/auth/login";
-      const body = register
-        ? {username,password,master_password:master}
-        : {username,password};
+      const body = register ? {username,password,master_password:master} : {username,password};
       const data = await api(endpoint,{method:"POST",body:JSON.stringify(body)});
       saveToken(data.access_token);
       onLogin(data.user);
     } catch(e) {
       setError(e instanceof Error ? e.message : "Не удалось выполнить запрос");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
-  return <div className="auth-page">
-    <div className="auth-card">
-      <div className="eyebrow">CARMANAGER MONITOR</div>
-      <h1>{register?"Создать аккаунт":"Вход"}</h1>
-      <p className="auth-subtitle">{register?"Для создания аккаунта требуется мастер-пароль.":"Войдите в мониторинг автомобилей."}</p>
-      {error&&<div className="error">{error}</div>}
-      <label>Логин</label>
-      <input autoFocus value={username} onChange={e=>setUsername(e.target.value)} placeholder="Введите логин"/>
-      <label>Пароль</label>
-      <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Введите пароль"/>
-      {register&&<>
-        <label>Мастер-пароль</label>
-        <input type="password" value={master} onChange={e=>setMaster(e.target.value)} placeholder="Введите мастер-пароль"/>
-      </>}
-      <button className="primary auth-submit" onClick={()=>void submit()} disabled={busy}>
-        {busy?(register?"Создание...":"Вход..."):(register?"Создать аккаунт":"Войти")}
-      </button>
-      <button className="link auth-switch" onClick={()=>{setRegister(!register);setError("")}}>
-        {register?"У меня уже есть аккаунт":"Нет аккаунта? Создать аккаунт"}
-      </button>
+  return (
+    <div className="page auth-state">
+      <form className="auth-card auth-form" onSubmit={(event)=>{event.preventDefault();void submit()}}>
+        <h1>CarManager Monitor</h1>
+        <p>{register ? "Создайте аккаунт" : "Войдите в аккаунт"}</p>
+        <input value={username} onChange={e=>setUsername(e.target.value)} placeholder="Логин" autoComplete="username" minLength={3} maxLength={50} required />
+        <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="Пароль (минимум 8 символов)" type="password" autoComplete={register ? "new-password" : "current-password"} minLength={8} maxLength={128} required />
+        {register && <input value={master} onChange={e=>setMaster(e.target.value)} placeholder="Мастер-пароль" type="password" autoComplete="off" maxLength={128} required />}
+        {error && <span className="auth-error">{error}</span>}
+        <button type="submit" disabled={busy}>{busy ? "Подождите..." : register ? "Зарегистрироваться" : "Войти"}</button>
+        <button type="button" className="auth-switch" onClick={()=>{setRegister(v=>!v);setError("")}}>{register ? "У меня уже есть аккаунт" : "Создать аккаунт"}</button>
+      </form>
     </div>
-  </div>;
+  );
 }
 
 function TelegramSettings({onClose}:{onClose:()=>void}) {
@@ -184,7 +177,7 @@ function FilterModal({initial,onClose,onSaved,brands,fuel,mission}:{initial:Filt
   }
   const toggle=(key:"fuel_ids"|"mission_ids",id:string)=>patch({[key]:f[key].includes(id)?f[key].filter(x=>x!==id):[...f[key],id]} as Partial<FilterDraft>);
   return <div className="filter-overlay"><div className="filter-modal">
-    <div className="filter-modal-header"><div><h2>{initial?"Редактировать фильтр":"Новый фильтр"}</h2><p>Настройте параметры поиска автомобиля</p></div><button className="close-button" onClick={onClose}>×</button></div>
+    <div className="filter-modal-header"><div><h1>{initial?"Редактировать фильтр":"Новый фильтр"}</h1><p>Настройте параметры поиска</p></div><button className="close-button" onClick={onClose}>×</button></div>
     {error&&<div className="form-error">{error}</div>}
     <form className="filter-form" onSubmit={e=>{e.preventDefault();void save()}}>
       <div className="field"><label>Название фильтра</label><input value={f.name} onChange={e=>patch({name:e.target.value})} placeholder="Например: BMW X5"/></div>
@@ -202,9 +195,45 @@ function FilterModal({initial,onClose,onSaved,brands,fuel,mission}:{initial:Filt
   </div></div>
 }
 
-function FilterCard({f,onToggle,onEdit,onDelete}:{f:Filter;onToggle:()=>void;onEdit:()=>void;onDelete:()=>void}){
-  const summary=[f.brand_id?"Марка: "+f.brand_id:"Все марки",f.model_id?"Модель: "+f.model_id:"Все модели",f.min_year||f.max_year?"Год: "+(f.min_year||"—")+"–"+(f.max_year||"—"):"Любой год",f.min_price||f.max_price?"Цена: "+fmt(f.min_price)+"–"+fmt(f.max_price):"Любая цена",f.min_mileage||f.max_mileage?"Пробег: "+fmt(f.min_mileage)+"–"+fmt(f.max_mileage)+" км":"Любой пробег"].join(" · ");
-  return <div className={f.enabled?"filter-card":"filter-card filter-card-disabled"}><div className="filter-summary"><strong>{f.name}</strong><span>{summary}</span></div><div className="filter-card-actions"><button onClick={onToggle}>{f.enabled?"Выключить":"Включить"}</button><button onClick={onEdit}>Изменить</button><button className="danger" onClick={onDelete}>Удалить</button></div></div>
+function FilterCard({f,onToggle,onEdit,onDelete}:{f:Filter;onToggle:()=>void;onEdit:()=>void;onDelete:()=>void}) {
+  function formatYear() {
+    if (f.min_year == null && f.max_year == null) return null;
+    return (f.min_year != null ? String(f.min_year) : "—") + " – " + (f.max_year != null ? String(f.max_year) : "—");
+  }
+  function formatPrice() {
+    if (f.min_price == null && f.max_price == null) return null;
+    return (f.min_price != null ? f.min_price.toLocaleString("ru-RU") : "0") + " – " + (f.max_price != null ? f.max_price.toLocaleString("ru-RU") : "∞");
+  }
+  function formatMileage() {
+    if (f.min_mileage == null && f.max_mileage == null) return null;
+    return (f.min_mileage != null ? f.min_mileage.toLocaleString("ru-RU") : "0") + " – " + (f.max_mileage != null ? f.max_mileage.toLocaleString("ru-RU") : "∞") + " км";
+  }
+  const year=formatYear(), price=formatPrice(), mileage=formatMileage();
+  const carName=[f.brand_id,f.model_id].filter(Boolean).join(" · ");
+  return (
+    <div className={`filter-card ${f.enabled ? "" : "filter-card-disabled"}`}>
+      <div className="filter-card-header">
+        <div>
+          <div className="filter-name">{f.name}</div>
+          {carName && <div className="filter-car-name">{carName}</div>}
+        </div>
+        <button type="button" className={`filter-toggle ${f.enabled ? "active" : ""}`} onClick={onToggle} aria-label={f.enabled ? "Выключить фильтр" : "Включить фильтр"}><span /></button>
+      </div>
+      <div className="filter-tags">
+        {year && <span className="filter-tag">📅 {year}</span>}
+        {price && <span className="filter-tag">💰 {price}</span>}
+        {mileage && <span className="filter-tag">🛣 {mileage}</span>}
+        {f.fuel_ids.length>0 && <span className="filter-tag">⛽ {f.fuel_ids.length} топливо</span>}
+        {f.mission_ids.length>0 && <span className="filter-tag">{f.mission_ids.length} КПП</span>}
+        {f.color_ids.length>0 && <span className="filter-tag">🎨 {f.color_ids.length} цвет</span>}
+        {f.sido_ids.length>0 && <span className="filter-tag">📍 {f.sido_ids.length} регион</span>}
+      </div>
+      <div className="filter-card-actions">
+        <button type="button" className="filter-edit-button" onClick={onEdit}>✎ Изменить</button>
+        <button type="button" className="filter-delete-button" onClick={onDelete}>🗑 Удалить</button>
+      </div>
+    </div>
+  );
 }
 
 function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}){
@@ -219,12 +248,12 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}){
   async function imported(e:ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0];e.target.value="";if(!file)return;try{const p=JSON.parse(await file.text());if(!Array.isArray(p?.filters))throw new Error("Некорректный JSON");for(const x of p.filters){const created=await api("/api/filters",{method:"POST",body:JSON.stringify({...empty,...x})});setFilters(v=>[...v,created])}}catch(x){setError(x instanceof Error?x.message:"Не удалось импортировать")}}
   async function search(){try{setSearching(true);setError("");await api("/api/monitor/run-once",{method:["P","O","S","T"].join("")});await load()}catch(e){setError(e instanceof Error?e.message:"Проверка не выполнена")}finally{setSearching(false)}}
   return <div className="page"><header className="app-header"><div className="app-logo">CarManager <span>Монитор</span></div><div className="app-header-actions"><button className="logout-button" onClick={onLogout}>Выйти</button><button className={monitor.enabled?"power-button active":"power-button"} onClick={()=>void monitorPatch({enabled:!monitor.enabled})} disabled={saving}>⏻</button></div></header><main className="dashboard">
-  <section className={monitor.enabled?"monitor-status enabled":"monitor-status disabled"}><strong>{loading?"Загрузка монитора...":monitor.enabled?"Монитор работает":"Монитор выключен"}</strong><span>{monitor.enabled?"Проверка "+interval(monitor.interval_minutes):"Нажмите кнопку питания справа вверху"}</span>{monitor.enabled&&<small>Следующая проверка: {monitor.next_run_at?new Date(monitor.next_run_at+"Z").toLocaleString("ru-RU"):"—"}</small>}</section>
-  <section className="dashboard-card"><div className="section-title">КАК ЧАСТО ПРОВЕРЯТЬ</div><div className="interval-list">{[1,5,10,15,30,60].map(n=><button key={n} className={monitor.interval_minutes===n?"interval-button active":"interval-button"} onClick={()=>void monitorPatch({interval_minutes:n})} disabled={saving}>{interval(n)}</button>)}</div></section>
+  <section className={monitor.enabled?"monitor-status enabled":"monitor-status disabled"}><strong>{loading?"Загрузка монитора...":monitor.enabled?"Монитор работает":"Монитор выключен"}</strong><span>{monitor.enabled?"Проверка "+interval(monitor.interval_minutes):"Нажмите кнопку питания справа вверху"}</span>{monitor.enabled&&<small className="monitor-next-run">Следующая проверка: {monitor.next_run_at?new Date(monitor.next_run_at+"Z").toLocaleString("ru-RU"):"—"}</small>}</section>
+  <section className="dashboard-card"><div className="section-title">КАК ЧАСТО ПРОВЕРЯТЬ</div><div className="interval-list">{[1,2,5,10,30,60].map(n=><button key={n} className={monitor.interval_minutes===n?"interval-button active":"interval-button"} onClick={()=>void monitorPatch({interval_minutes:n})} disabled={saving}>{interval(n)}</button>)}</div></section>
   <section className="dashboard-card filters-section"><div className="section-title">КАКИЕ МАШИНЫ ИСКАТЬ</div>{error&&<div className="dashboard-error">{error}</div>}{loading?<div className="dashboard-message">Загрузка фильтров...</div>:filters.length===0?<div className="dashboard-message">Пока нет фильтров</div>:<div className="filters-list">{filters.map(f=><FilterCard key={f.id} f={f} onToggle={()=>void toggle(f)} onEdit={()=>{setEditing(f);setModal("filter")}} onDelete={()=>void del(f)}/>)}</div>}<button className="add-filter-button" onClick={()=>{setEditing(null);setModal("filter")}}>+ Добавить фильтр</button><div className="import-export"><button className="outline-button" onClick={exported} disabled={!filters.length}>↓ Экспорт JSON</button><label className="outline-button">↑ Импорт JSON<input hidden type="file" accept=".json,application/json" onChange={e=>void imported(e)}/></label></div></section>
   <section className="dashboard-card telegram-card"><div className="section-title">TELEGRAM УВЕДОМЛЕНИЯ</div><button className="outline-button" onClick={()=>setModal("telegram")}>Управление получателями</button></section>
   <section className="dashboard-card journal-card"><div className="journal-header"><div className="section-title">СОСТОЯНИЕ</div><span>{active} активных фильтр(ов)</span></div><div className="journal"><div>[INFO] Планировщик: {monitor.enabled?"включён":"выключен"}</div><div>[INFO] Интервал: {interval(monitor.interval_minutes)}</div><div>[INFO] Активных фильтров: {active}</div><div>[INFO] Следующая проверка: {monitor.next_run_at?new Date(monitor.next_run_at+"Z").toLocaleString("ru-RU"):"—"}</div></div><div className="journal-actions"><button className="outline-button" onClick={()=>void load()}>Обновить</button><button className="outline-button" onClick={()=>setError("")}>Очистить ошибки</button></div></section>
-  <section className="dashboard-card"><div className="section-title">ПОИСК</div><button className="primary-button" onClick={()=>void search()} disabled={searching}>{searching?"Поиск...":"Проверить сейчас"}</button>{cars.length>0&&<div className="car-results">{cars.map(c=><article className="car-result" key={c.id}>{c.image_url&&<img src={c.image_url}/>}<div><h3>{c.title}</h3><p>{c.year||"—"} · {fmt(c.mileage)} км · {fmt(c.price)}</p><p>{c.location||"—"}</p></div></article>)}</div>}</section>
+  
 </main>{modal==="filter"&&<FilterModal initial={editing} onClose={()=>{setModal(null);setEditing(null)}} onSaved={f=>{setFilters(v=>editing?v.map(x=>x.id===f.id?f:x):[...v,f]);setEditing(null);setModal(null)}} brands={brands} fuel={fuel} mission={mission}/>} {modal==="telegram"&&<TelegramSettings onClose={()=>setModal(null)}/>}</div>
 }
 function MultiSelect({title,items,selected,set}:{title:string;items:Option[];selected:string[];set:(v:string[])=>void}){
