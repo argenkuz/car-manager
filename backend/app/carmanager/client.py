@@ -23,7 +23,7 @@ class CarManagerClient:
         self.client = httpx.AsyncClient(
             base_url=settings.carmanager_base_url.rstrip("/"),
             timeout=httpx.Timeout(60.0, connect=30.0),
-            follow_redirects=True,
+            follow_redirects=False,
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -41,13 +41,31 @@ class CarManagerClient:
         if not settings.carmanager_user_id or not settings.carmanager_password:
             return False
 
+        base_url = settings.carmanager_base_url.rstrip("/")
+        login_url = "/User/Login"
+        browser_headers = {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Referer": f"{base_url}{login_url}?returnurl=%2FCar%2FData",
+        }
+
+        await self.client.get(
+            f"{login_url}?returnurl=%2FCar%2FData",
+            headers=browser_headers,
+        )
+
         response = await self.client.post(
-            "/User/Login",
+            login_url,
             data={
                 "sbxgubun": "1",
                 "returnurl": "/Car/Data",
                 "userid": settings.carmanager_user_id,
                 "userpwd": settings.carmanager_password,
+            },
+            headers={
+                **browser_headers,
+                "Origin": base_url,
+                "Content-Type": "application/x-www-form-urlencoded",
             },
             follow_redirects=False,
         )
@@ -58,7 +76,17 @@ class CarManagerClient:
         return await self._load_search_context()
 
     async def _load_search_context(self) -> bool:
-        response = await self.client.get("/Car/Data")
+        response = await self.client.get(
+            "/Car/Data",
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Referer": f"{settings.carmanager_base_url.rstrip('/')}/User/Login?returnurl=%2FCar%2FData",
+            },
+        )
+        if response.status_code in {301, 302, 303, 307, 308} or "User/Login" in str(response.url):
+            self.authenticated = False
+            return False
         if response.status_code != 200:
             self.authenticated = False
             return False
