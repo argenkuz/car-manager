@@ -23,8 +23,7 @@ class CarManagerClient:
         self.client = httpx.AsyncClient(
             base_url=settings.carmanager_base_url.rstrip("/"),
             timeout=httpx.Timeout(60.0, connect=30.0),
-            follow_redirects=False,
-            proxy=settings.carmanager_proxy_url or None,
+            follow_redirects=True,
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -42,50 +41,24 @@ class CarManagerClient:
         if not settings.carmanager_user_id or not settings.carmanager_password:
             return False
 
-        base_url = settings.carmanager_base_url.rstrip("/")
-        login_url = "/User/Login"
-        data_url = "/Car/Data"
-        browser_headers = {
-            "Accept": (
-                "text/html,application/xhtml+xml,application/xml;"
-                "q=0.9,image/avif,image/webp,*/*;q=0.8"
-            ),
-            "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Referer": f"{base_url}{login_url}?returnurl=%2FCar%2FData",
-        }
-
-        # Establish the same session/cookies as a normal browser login page.
-        await self.client.get(
-            f"{login_url}?returnurl=%2FCar%2FData",
-            headers=browser_headers,
-        )
-
         response = await self.client.post(
-            login_url,
+            "/User/Login",
             data={
                 "sbxgubun": "1",
                 "returnurl": "/Car/Data",
                 "userid": settings.carmanager_user_id,
                 "userpwd": settings.carmanager_password,
             },
-            headers={
-                **browser_headers,
-                "Origin": base_url,
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
             follow_redirects=False,
         )
-        if response.status_code not in {301, 302, 303, 307, 308}:
-            self.authenticated = False
+        self.authenticated = response.status_code in {301, 302, 303, 307, 308}
+        if not self.authenticated:
             return False
 
         return await self._load_search_context()
 
     async def _load_search_context(self) -> bool:
         response = await self.client.get("/Car/Data")
-        if response.status_code in {301, 302, 303, 307, 308} or "User/Login" in str(response.url):
-            self.authenticated = False
-            return False
         if response.status_code != 200:
             self.authenticated = False
             return False
@@ -99,19 +72,6 @@ class CarManagerClient:
         # an authentication failure instead of sending a malformed search.
         if not self.enc_check:
             self.authenticated = False
-
-            # CarManager may return HTTP 200 with the real search HTML while
-            # the page itself redirects clients whose source IP is not approved.
-            if "/Error" in response.text or 'document.location.replace("/Error' in response.text:
-                match = re.search(r"return\s+['\"]([^'\"]+)['\"]", response.text)
-                detected_ip = match.group(1) if match else ""
-                raise RuntimeError(
-                    "CarManager rejected the source network/IP. "
-                    f"Detected IP: {detected_ip or 'unknown'}. "
-                    "Run the service from an approved CarManager network/IP "
-                    "or configure CARMANAGER_PROXY_URL."
-                )
-
             return False
         return True
 
@@ -288,6 +248,30 @@ class CarManagerClient:
                 headers={
                     "Content-Type": "application/json; charset=utf-8",
                     "X-Requested-With": "XMLHttpRequest",
+                    "Referer": f"{settings.carmanager_base_url.rstrip('/')}/Car/Data",
+                },
+            )
+        return response
+
+    def build_search_payload(self, filters: dict[str, Any], page: int = 1, page_size: int = 50) -> dict:
+        """Return the exact /Car/DataPart payload used by search()."""
+        return self._build_search_payload(filters, page=page, page_size=page_size)
+
+    async def get_car_detail(self, car_url: str) -> httpx.Response:
+        """Fetch an authenticated CarManager listing detail page."""
+        await self.ensure_login()
+        response = await self.client.get(
+            car_url,
+            headers={
+                "Referer": f"{settings.carmanager_base_url.rstrip('/')}/Car/Data",
+            },
+        )
+        if response.status_code in {301, 302, 303, 307, 308} or "User/Login" in str(response.url):
+            self.authenticated = False
+            await self.ensure_login()
+            response = await self.client.get(
+                car_url,
+                headers={
                     "Referer": f"{settings.carmanager_base_url.rstrip('/')}/Car/Data",
                 },
             )
