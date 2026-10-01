@@ -24,6 +24,7 @@ class CarManagerClient:
             base_url=settings.carmanager_base_url.rstrip("/"),
             timeout=httpx.Timeout(60.0, connect=30.0),
             follow_redirects=False,
+            proxy=settings.carmanager_proxy_url or None,
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -98,6 +99,19 @@ class CarManagerClient:
         # an authentication failure instead of sending a malformed search.
         if not self.enc_check:
             self.authenticated = False
+
+            # CarManager may return HTTP 200 with the real search HTML while
+            # the page itself redirects clients whose source IP is not approved.
+            if "/Error" in response.text or 'document.location.replace("/Error' in response.text:
+                match = re.search(r"return\s+['\"]([^'\"]+)['\"]", response.text)
+                detected_ip = match.group(1) if match else ""
+                raise RuntimeError(
+                    "CarManager rejected the source network/IP. "
+                    f"Detected IP: {detected_ip or 'unknown'}. "
+                    "Run the service from an approved CarManager network/IP "
+                    "or configure CARMANAGER_PROXY_URL."
+                )
+
             return False
         return True
 
