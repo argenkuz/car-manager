@@ -36,6 +36,8 @@ class CarManagerClient:
         self.enc_check = ""
         self.pre_page = ""
         self.search_html = ""
+        self.security_blocked = False
+        self.security_message = ""
 
     async def login(self) -> bool:
         if not settings.carmanager_user_id or not settings.carmanager_password:
@@ -92,12 +94,20 @@ class CarManagerClient:
             return False
 
         soup = BeautifulSoup(response.text, "html.parser")
+        self.security_blocked, self.security_message = self._detect_security_restriction(soup, response.text)
         self.enc_check = self._input_value(soup, "EncCheck")
         self.pre_page = self._input_value(soup, "PrePage")
         self.search_html = response.text
 
-        # EncCheck is required by /Car/DataPart. Treat an HTML login page as
-        # an authentication failure instead of sending a malformed search.
+        # CarManager can return a normal-looking /Car/Data page while its
+        # security layer has blocked the session. Such a page may still contain
+        # the logged-in header, but it does not contain a usable EncCheck token.
+        if self.security_blocked:
+            self.authenticated = False
+            return False
+
+        # EncCheck is required by /Car/DataPart. Never send a malformed search
+        # request when the authenticated search context was not created.
         if not self.enc_check:
             self.authenticated = False
             return False
@@ -136,6 +146,19 @@ class CarManagerClient:
         }
 
     @staticmethod
+    def _detect_security_restriction(soup: BeautifulSoup, html: str) -> tuple[bool, str]:
+        """Detect CarManager's security-restriction page before searching."""
+        text = soup.get_text(" ", strip=True)
+        markers = (
+            "시스템 보안 정책에 위배되어 사용이 제한되었습니다",
+            "이용제한 해제를 위한 안내 URL을 등록된 휴대폰으로 발송",
+        )
+        for marker in markers:
+            if marker in text or marker in html:
+                return True, text
+        return False, ""
+
+    @staticmethod
     def _input_value(soup: BeautifulSoup, name: str) -> str:
         node = soup.find("input", attrs={"name": name})
         if node is None:
@@ -146,6 +169,10 @@ class CarManagerClient:
         if self.authenticated and self.enc_check:
             return
         if not await self.login():
+            if self.security_blocked:
+                raise RuntimeError(
+                    "CarManager access is blocked by the site's security policy"
+                )
             raise RuntimeError("CarManager authentication failed")
 
     async def get(self, path: str, **kwargs: Any) -> httpx.Response:
