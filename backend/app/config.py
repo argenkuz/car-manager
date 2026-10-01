@@ -6,8 +6,6 @@ class Settings(BaseSettings):
     carmanager_user_id: str = ""
     carmanager_password: str = ""
     carmanager_search_path: str = ""
-    # Optional HTTP(S) proxy for an approved CarManager source network/IP.
-    carmanager_proxy_url: str = ""
     database_url: str = "sqlite+aiosqlite:///./car_manager.db"
     telegram_bot_token: str = ""
     frontend_origins: list[str] = ["http://localhost:5173"]
