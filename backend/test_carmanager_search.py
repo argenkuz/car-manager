@@ -65,25 +65,12 @@ async def main():
         print("-" * 70)
 
         print("\n5. POSSIBLE CAR IDENTIFIERS")
-        identifiers = set()
-        for pattern in (
-            r'data-car-id=["\\']([^"\\']+)["\\']',
-            r'data-id=["\\']([^"\\']+)["\\']',
-            r'CarNo["\\']?\\s*[:=]\\s*["\\']?([A-Za-z0-9_-]+)',
-            r'carno["\\']?\\s*[:=]\\s*["\\']?([A-Za-z0-9_-]+)',
-            r'EncNo["\\']?\\s*[:=]\\s*["\\']?([A-Za-z0-9_-]+)',
-        ):
-            import re
-            identifiers.update(re.findall(pattern, response.text, re.IGNORECASE))
-
-        if identifiers:
-            for item in list(identifiers)[:30]:
-                print(item)
-        else:
-            print("Явные ID не найдены.")
+        for marker in ("data-car-id", "data-id", "CarNo", "carno", "EncNo"):
+            if marker in response.text:
+                print("Found:", marker)
 
     except Exception as exc:
-        print(f"\\nERROR: {type(exc).__name__}: {exc}")
+        print(f"\nERROR: {type(exc).__name__}: {exc}")
         raise
     finally:
         await client.close()
